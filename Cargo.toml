@@ -2,6 +2,7 @@
 members = [
     "node",
     "pallets/erc20",
+    "pallets/kitty",
     "runtime",
 ]
 [profile.release]

@@ -45,6 +45,7 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
 pub use pallet_erc20;
+pub use pallet_kitty;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -265,6 +266,9 @@ impl pallet_sudo::Config for Runtime {
 impl pallet_erc20::Config for Runtime {
 	type Event = Event;
 }
+impl pallet_kitty::Config for Runtime {
+	type Event = Event;
+}
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -283,6 +287,7 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		ERC20: pallet_erc20,
+		Kitty: pallet_kitty,
 	}
 );
 
@@ -328,6 +333,7 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_timestamp, Timestamp]
 		[pallet_erc20, ERC20]
+		[pallet_kitty, Kitty]
 	);
 }
 
