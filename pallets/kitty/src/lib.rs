@@ -110,7 +110,7 @@ pub mod pallet {
 					is_exist = true;
 					_current_from_dna.remove(_idx);
 					<Balance<T>>::insert(&who, _current_from_dna);
-					let mut _current_to_dna = <Balance<T>>::get(&to).unwrap();
+					let mut _current_to_dna = <Balance<T>>::get(&to).unwrap_or(Vec::new());
 					_current_to_dna.push(dna.clone());
 					<Balance<T>>::insert(&to, _current_to_dna);
 					break;
