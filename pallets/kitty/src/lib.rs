@@ -113,6 +113,10 @@ pub mod pallet {
 					let mut _current_to_dna = <Balance<T>>::get(&to).unwrap_or(Vec::new());
 					_current_to_dna.push(dna.clone());
 					<Balance<T>>::insert(&to, _current_to_dna);
+
+					let mut kitty = <KittyInfo<T>>::get(&dna).unwrap();
+					kitty.owner = to.clone();
+					<KittyInfo<T>>::insert(dna.clone(), kitty);
 					break;
 				}
 			}
