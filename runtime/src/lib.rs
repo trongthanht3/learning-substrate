@@ -268,6 +268,8 @@ impl pallet_erc20::Config for Runtime {
 }
 impl pallet_kitty::Config for Runtime {
 	type Event = Event;
+	type TimeProvider = pallet_timestamp::Pallet<Runtime>;
+	type Rand = pallet_randomness_collective_flip::Pallet<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
