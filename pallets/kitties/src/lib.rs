@@ -16,22 +16,32 @@ pub use pallet::*;
 
 use frame_support::inherent::Vec;
 use frame_support::pallet_prelude::*;
-use frame_support::traits::Randomness;
 use frame_system::pallet_prelude::*;
 use scale_info::prelude::collections::*;
+
+use frame_support::traits::Currency;
+use frame_support::traits::Randomness;
+use frame_support::traits::UnixTime;
+
+const MAX_BOUND: u32 = 10;
+
+type BalanceOf<T> =
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
 pub mod pallet {
 	pub use super::*;
 
 	pub type DNA = Vec<u8>;
+	pub type KittyBounce = BoundedVec<DNA, ConstU32<MAX_BOUND>>;
 	#[derive(TypeInfo, Default, Encode, Decode, Clone)]
 	#[scale_info(skip_type_params(T))]
 	pub struct Kitty<T: Config> {
 		dna: DNA,
 		owner: T::AccountId,
-		price: u32,
+		price: BalanceOf<T>,
 		gender: Gender,
+		created_date: u64,
 	}
 
 	pub type Id = u32;
@@ -52,6 +62,9 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type Currency: Currency<Self::AccountId>;
+		type Time: UnixTime;
+		type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
 	}
 
 	#[pallet::pallet]
@@ -73,7 +86,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn kitty)]
 	pub(super) type KittyMap<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<DNA>, OptionQuery>;
+		StorageMap<_, Blake2_128Concat, T::AccountId, KittyBounce, OptionQuery>;
 	// pub(super) type SomeMap<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u32, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
@@ -95,6 +108,7 @@ pub mod pallet {
 		NotExist,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+		OutOfBound,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -105,25 +119,36 @@ pub mod pallet {
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn create_kitty(
-			origin: OriginFor<T>,
-			dna: Vec<u8>,
-			seed: u32,
-			price: u32,
-		) -> DispatchResult {
+		pub fn create_kitty(origin: OriginFor<T>, price: u32) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-
+			log::info!("total balance: {:?}", T::Currency::total_balance(&who));
 			// let dna = Self::gen_dna(seed)?;
-			let gender = Self::gen_gender(&dna)?;
-			let dna: &DNA = &dna;
 
-			let kitty = Kitty { dna: dna.clone(), owner: who.clone(), price, gender };
+			// randomness
+			let created_date: u64 = T::Time::now().as_secs();
+			let nonce = created_date as u8;
+			let (randomValue, _) = T::Randomness::random(&[nonce]);
+
+			let dna: &DNA = &randomValue.encode();
+			let gender = Self::gen_gender(&dna)?;
+
+			let kitty = Kitty {
+				dna: dna.clone(),
+				owner: who.clone(),
+				price: 0u32.into(),
+				gender,
+				created_date,
+			};
 
 			let mut current_id = <KittyId<T>>::get();
 			<KittyInfo<T>>::insert(&dna, kitty.clone());
-			let mut kitty_vec = <KittyMap<T>>::get(who.clone()).unwrap_or(Vec::new());
-			kitty_vec.push(kitty.dna);
-			<KittyMap<T>>::insert(who.clone(), kitty_vec);
+			// let mut kitty_vec = <KittyMap<T>>::get(who.clone()).unwrap_or(Vec::new());
+			// kitty_vec.push(kitty.dna);
+			// <KittyMap<T>>::insert(who.clone(), kitty_vec);
+			if KittyMap::<T>::try_append(&who, dna.clone()).is_err() {
+				return Err(Error::<T>::OutOfBound.into());
+			}
+
 			current_id += 1;
 			<KittyId<T>>::put(current_id);
 
@@ -141,12 +166,9 @@ pub mod pallet {
 			ensure!(<KittyInfo<T>>::contains_key(&dna), Error::<T>::NotExist);
 			let mut kitty = <KittyInfo<T>>::get(&dna).unwrap();
 			ensure!(kitty.owner == who, Error::<T>::NotOwner);
-			ensure!(
-				<KittyMap<T>>::get(who.clone()).unwrap_or(Vec::new()).contains(&dna),
-				Error::<T>::NotOwner
-			);
+			ensure!(<KittyMap<T>>::get(who.clone()).unwrap().contains(&dna), Error::<T>::NotOwner);
 
-			let mut kitty_vec = <KittyMap<T>>::get(who.clone()).unwrap_or(Vec::new());
+			let mut kitty_vec = <KittyMap<T>>::get(who.clone()).unwrap();
 
 			// remove old owner
 			let mut index = 0;
@@ -162,15 +184,17 @@ pub mod pallet {
 				}
 				index += 1;
 			}
-			kitty_vec.remove(index);
-			<KittyMap<T>>::insert(who.clone(), kitty_vec);
+			<KittyMap<T>>::get(who.clone()).unwrap().remove(index);
 
 			// add new owner
 			kitty.owner = to.clone();
-			<KittyInfo<T>>::insert(&dna, kitty.clone());
-			let mut kitty_vec_to = <KittyMap<T>>::get(to.clone()).unwrap_or(Vec::new());
-			kitty_vec_to.push(kitty.dna);
-			<KittyMap<T>>::insert(to.clone(), kitty_vec_to);
+			// <KittyInfo<T>>::insert(&dna, kitty.clone());
+			// let mut kitty_vec_to = <KittyMap<T>>::get(to.clone());
+			// kitty_vec_to.push(kitty.dna);
+			// <KittyMap<T>>::insert(to.clone(), kitty_vec_to);
+			if KittyMap::<T>::try_append(&to, dna.clone()).is_err() {
+				return Err(Error::<T>::OutOfBound.into());
+			}
 
 			Self::deposit_event(Event::KittyTransfered(who, to, dna.clone()));
 
