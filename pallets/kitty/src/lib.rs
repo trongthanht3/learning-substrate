@@ -13,7 +13,7 @@ use frame_support::traits::{Randomness, UnixTime};
 use frame_system::pallet_prelude::*;
 use scale_info::TypeInfo;
 pub type DNA = Vec<u8>;
-const MAX_BOUND: u32 = 10;
+const MAX_BOUND: u32 = 5;
 pub type KittiesBounce = BoundedVec<DNA, ConstU32<MAX_BOUND>>;
 
 #[frame_support::pallet]
