@@ -9,7 +9,6 @@ use frame_support::inherent::Vec;
 use frame_support::pallet_prelude::*;
 use frame_support::sp_runtime::ArithmeticError;
 use frame_support::storage::bounded_vec::BoundedVec;
-use frame_support::traits::ConstU128;
 use frame_support::traits::{Randomness, UnixTime};
 use frame_system::pallet_prelude::*;
 use scale_info::TypeInfo;
@@ -69,9 +68,6 @@ pub mod pallet {
 	#[pallet::getter(fn total_kitty)]
 	pub type KittyId<T> = StorageValue<_, u32, ValueQuery, ConstU32<0>>;
 
-	#[pallet::storage]
-	pub type Nonce<T> = StorageValue<_, u128, ValueQuery, ConstU128<1>>;
-
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -98,9 +94,8 @@ pub mod pallet {
 		pub fn mint(origin: OriginFor<T>, price: u32) -> DispatchResult {
 			let owner = ensure_signed(origin)?;
 			let start = T::TimeProvider::now();
-			let nonce = Nonce::<T>::get();
-			let ran = T::Rand::random(&(start.as_nanos() + (price as u128) + nonce).encode());
-			let next_nonce = nonce.checked_add(1).ok_or(ArithmeticError::Overflow)?;
+			let nonce = KittyId::<T>::get();
+			let ran = T::Rand::random(&(nonce as u128).encode());
 			let dna = ran.0.encode();
 			let gender = Self::gen_gender(&dna)?;
 			let kitty = Kitty::<T> {
@@ -125,7 +120,6 @@ pub mod pallet {
 			// Write new kitty to storage
 			Kitties::<T>::insert(kitty.dna.clone(), kitty);
 			KittyId::<T>::put(next_id);
-			Nonce::<T>::put(next_nonce);
 
 			// Deposit our "Created" event.
 			Self::deposit_event(Event::Created { kitty: dna, owner: owner.clone() });
