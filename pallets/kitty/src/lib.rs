@@ -4,7 +4,14 @@
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/v3/runtime/frame>
 pub use pallet::*;
+#[cfg(test)]
+mod mock;
 
+#[cfg(test)]
+mod tests;
+
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 use frame_support::inherent::Vec;
 use frame_support::pallet_prelude::*;
 use frame_support::sp_runtime::ArithmeticError;
@@ -47,7 +54,7 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type TimeProvider: UnixTime;
-		type Rand: Randomness<Self::Hash, u32>;
+		type Rand: Randomness<Self::Hash, Self::BlockNumber>;
 	}
 
 	#[pallet::pallet]
