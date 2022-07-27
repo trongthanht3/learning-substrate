@@ -12,6 +12,7 @@ mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+
 use frame_support::inherent::Vec;
 use frame_support::pallet_prelude::*;
 use frame_support::sp_runtime::ArithmeticError;

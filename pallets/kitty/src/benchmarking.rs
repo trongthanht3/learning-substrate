@@ -11,7 +11,7 @@ benchmarks! {
 	create_kitty {
 		let price :u32 = 100;
 		let caller: T::AccountId = whitelisted_caller();
-	}: mint (RawOrigin::Signed(caller), dnas)
+	}: mint (RawOrigin::Signed(caller), price)
 
 	// kiểm tra lại trạng thái storage khi thực hiện extrinsic xem đúng chưa
 	verify {
