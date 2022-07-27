@@ -20,3 +20,14 @@ benchmarks! {
 
 	impl_benchmark_test_suite!(Template, crate::mock::new_test_ext(), crate::mock::Test);
 }
+
+// ./target/release/node-template benchmark pallet \
+//     --chain dev \
+//     --execution wasm \
+//     --wasm-execution compiled \
+//     --pallet pallet_kitty \
+//     --extrinsic '*' \
+//     --steps 20 \
+//     --repeat 10 \
+//     --json-file=raw.json \
+//     --output ./weights.rs

@@ -5,9 +5,8 @@ use frame_support::{assert_noop, assert_ok};
 fn it_works_for_default_value() {
 	new_test_ext().execute_with(|| {
 		// Dispatch a signed extrinsic.
-		// assert_ok!(ERC20::do_something(Origin::signed(1), 42));
+		// assert_ok!(Kitty::mint(Origin::signed(1), 1));
 		// Read pallet storage and assert an expected result.
-		// assert_eq!(ERC20::something(), Some(42));
 	});
 }
 

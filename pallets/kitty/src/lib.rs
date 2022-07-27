@@ -13,6 +13,7 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+use frame_support::dispatch::fmt;
 use frame_support::inherent::Vec;
 use frame_support::pallet_prelude::*;
 use frame_support::sp_runtime::ArithmeticError;
@@ -29,7 +30,7 @@ pub mod pallet {
 
 	pub use super::*;
 
-	#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
+	#[derive(Clone, Encode, Decode, PartialEq, TypeInfo)]
 	#[scale_info(skip_type_params(T))]
 	pub struct Kitty<T: Config> {
 		dna: DNA,
@@ -39,7 +40,7 @@ pub mod pallet {
 		created_date: u64,
 	}
 
-	#[derive(Clone, Encode, Decode, PartialEq, Copy, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[derive(Clone, Encode, Decode, PartialEq, Copy, TypeInfo, MaxEncodedLen, fmt::Debug)]
 	pub enum Gender {
 		Male,
 		Female,
@@ -47,6 +48,18 @@ pub mod pallet {
 	impl Default for Gender {
 		fn default() -> Self {
 			Gender::Male
+		}
+	}
+
+	impl<T: Config> fmt::Debug for Kitty<T> {
+		fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+			f.debug_struct("Kitty")
+				.field("dna", &self.dna)
+				.field("price", &self.price)
+				.field("owner", &self.owner)
+				.field("gender", &self.gender)
+				.field("created_date", &self.created_date)
+				.finish()
 		}
 	}
 	/// Configure the pallet by specifying the parameters and types on which it depends.
