@@ -141,6 +141,12 @@ pub mod pallet {
 					created_date: self.current_time,
 				};
 				KittyInfo::<T>::insert(item, kitty);
+				let mut current_id = <KittyId<T>>::get();
+				current_id += 1;
+				<KittyId<T>>::put(current_id);
+				if KittyMap::<T>::try_append(self.owner.clone().unwrap(), item).is_err() {
+					return ();
+				}
 			}
 		}
 	}
